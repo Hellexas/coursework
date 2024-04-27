@@ -1,3 +1,5 @@
+import os
+from datetime import datetime
 class Singleton(type):
     """Singleton metaclass"""
     _instances = {}
@@ -150,79 +152,129 @@ class NumberConverter:
         """Converts the given number to its corresponding representation"""
         return number.convert()
 
+
 class DataLogger(metaclass=Singleton):
     """Class responsible for logging data to files"""
 
-    def __init__(self):
-        self.create_files()
+    def __init__(self, log_file="istorija.txt", data_file="duomenys.txt"):
+        self.log_file = log_file
+        self.data_file = data_file
+        self.validate_and_initialize_datafile()
 
-    def create_files(self):
-        """Creates the istorija.txt and duomenys.txt files if they don't exist"""
-        with open("../../Downloads/istorija.txt", "a"):
-            pass
-        with open("../../Downloads/duomenys.txt", "a") as duomenys_file:
-            if duomenys_file.tell() == 0:
-                duomenys_file.write("Number of times code was initiated: 1\n")
-                duomenys_file.write("Number of requests: 0\n")
-                duomenys_file.write("Number of Roman to decimal conversions: 0\n")
-                duomenys_file.write("Number of decimal to Roman conversions: 0\n")
+    def validate_and_initialize_datafile(self):
+        """Checks if duomenys.txt has the required structure. Initializes if needed."""
+        try:
+            with open(self.data_file, "r") as duomenys_file:
+                lines = duomenys_file.readlines()
+        except FileNotFoundError:
+            self.initialize_datafile()
+            return
 
-    def log_data(self, log_message, conversion_type):
-        """Logs the conversion data to files"""
-        with open("../../Downloads/istorija.txt", "a") as istorija_file:
+        if len(lines) != 4:
+            self.initialize_datafile()
+
+    def initialize_datafile(self):
+        """Creates the data file if it doesn't exist or overwrites with initial data."""
+        with open(self.data_file, "w") as duomenys_file:
+            duomenys_file.write("Number of times code was initiated: 1\n")
+            duomenys_file.write("Number of requests: 0\n")
+            duomenys_file.write("Number of Roman to decimal conversions: 0\n")
+            duomenys_file.write("Number of decimal to Roman conversions: 0\n")
+
+    def log_data(self, log_message, conversion_type=None):
+        """Logs data to files and updates statistics in the data file"""
+        # Handle potential 'None' or empty value for log_message
+        if not log_message:  # Check for None or empty string
+            # Get the current date and time
+            now = datetime.now()
+            timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
+            log_message = f"Application started at {timestamp}"
+        with open(self.log_file, "a") as istorija_file:
             istorija_file.write(log_message + "\n")
 
-        with open("../../Downloads/duomenys.txt", "r") as duomenys_file:
-            lines = duomenys_file.readlines()
+        try:
+            with open(self.data_file, "r") as duomenys_file:
+                lines = duomenys_file.readlines()
+        except FileNotFoundError:
+            self.initialize_datafile()
+            return
 
+        # Regardless of conversion_type, increment the initiated counter
+        num_times_initiated = int(lines[0].split(":")[1].strip()) + 1
+
+        # Update other statistics based on conversion_type (if provided)
         num_requests = int(lines[1].split(":")[1].strip())
         num_roman_to_decimal = int(lines[2].split(":")[1].strip())
         num_decimal_to_roman = int(lines[3].split(":")[1].strip())
 
-        num_requests += 1
-        if conversion_type == "roman_to_decimal":
-            num_roman_to_decimal += 1
-        elif conversion_type == "decimal_to_roman":
-            num_decimal_to_roman += 1
+        if conversion_type:
+            num_requests += 1
+            if conversion_type == "roman_to_decimal":
+                num_roman_to_decimal += 1
+            elif conversion_type == "decimal_to_roman":
+                num_decimal_to_roman += 1
 
-        with open("../../Downloads/duomenys.txt", "w") as duomenys_file:
-            duomenys_file.write(f"Number of times code was initiated: {int(lines[0].split(':')[1].strip()) + 1}\n")
+        with open(self.data_file, "w") as duomenys_file:
+            duomenys_file.write(f"Number of times code was initiated: {num_times_initiated}\n")
             duomenys_file.write(f"Number of requests: {num_requests}\n")
             duomenys_file.write(f"Number of Roman to decimal conversions: {num_roman_to_decimal}\n")
             duomenys_file.write(f"Number of decimal to Roman conversions: {num_decimal_to_roman}\n")
 
     def print_istorija(self):
-        """Prints the contents of istorija.txt on code launch if the file exists"""
+        """Prints the contents of the log file (istorija.txt)."""
         try:
-            with open("../../Downloads/istorija.txt", "r") as istorija_file:
+            with open(self.log_file, "r") as istorija_file:
                 print("Contents of istorija.txt:")
                 print(istorija_file.read())
                 print()
         except FileNotFoundError:
             pass
 
-
 class UserInterface:
-    """Class responsible for handling user interactions"""
-
     def __init__(self):
         self.converter = NumberConverter()
-        self.logger = DataLogger()
+        self.logger = DataLogger()  # Default file names used
 
     def run(self):
-        """Runs the user interface loop"""
+        self.logger.log_data(log_message=None)
         self.logger.print_istorija()
+
         while True:
-            user_input = input("Enter a Roman numeral or a decimal number (or 'duom' to print duomenys.txt, 'exit' to quit): ").lower()
+            user_input = input("Enter a Roman numeral or a decimal number (or 'duom' to print duomenys.txt, 'logs' to print istorija.txt, 'clear' to clear logs, 'exit' to quit): ").lower()
             if user_input == "exit":
                 break
             elif user_input == "duom":
-                with open("../../Downloads/duomenys.txt", "r") as duomenys_file:
-                    print("Contents of duomenys.txt:")
-                    print(duomenys_file.read())
-                    print()
+                self.print_duomenys()
+            elif user_input == "clear":  # New functionality!
+                self.clear_logs()
+            elif user_input == "logs":  # New functionality!
+                self.logger.print_istorija()
             else:
                 self.handle_user_input(user_input)
+
+    def clear_logs(self):
+        """Clears the contents of both files and reinitializes duomenys.txt"""
+        for file_path in [self.logger.log_file, self.logger.data_file]:
+            try:
+                open(file_path, 'w').close()
+                print(f"Cleared: {file_path}")
+
+                # Reinitialize duomenys.txt if necessary
+                if file_path == self.logger.data_file:
+                    self.logger.initialize_datafile()
+
+            except FileNotFoundError:
+                print(f"Warning: File not found: {file_path}")
+
+    def print_duomenys(self):
+        data_file_path = os.path.join(os.getcwd(), "duomenys.txt")  # Relative to current directory
+        try:
+            with open(data_file_path, "r") as duomenys_file:
+                print("Contents of duomenys.txt:")
+                print(duomenys_file.read())
+                print()
+        except FileNotFoundError:
+            print("Error: duomenys.txt not found.")
 
     def handle_user_input(self, user_input):
         """Handles the user input and performs the conversion"""
@@ -235,7 +287,7 @@ class UserInterface:
             if isinstance(converted_result, tuple):
                 decimal_value, violated_rules = converted_result
                 rule_violations = ", ".join([rule[1] for rule in violated_rules])
-                log_message = f"{user_input} is a {number.__class__.__name__}, and its converted value is {decimal_value}"
+                log_message = f"{user_input.upper()} is a {number.__class__.__name__}, and its converted value is {decimal_value}"
                 if rule_violations:
                     log_message += f", {rule_violations}"
                 self.logger.log_data(log_message, conversion_type)
