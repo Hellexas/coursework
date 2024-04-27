@@ -103,18 +103,41 @@ class RomanNumber(Number):
         # Rule violation checks
         last_char = None
         repeat_count = 0
+        subtractive_used = False  # For tracking subtractives
+        larger_value_seen = False  # For repeatable subtractives check
+
         for char in roman:
             if char == last_char:
                 repeat_count += 1
+
+                # Repeats rule
                 if repeat_count > 3:
                     violated_rules.append(self.ROMAN_NUMERAL_RULES[0])
+
             else:
                 repeat_count = 1
                 last_char = char
 
+            # Subtractives rules
+            if value < prev_value:
+                subtractive_used = True
+                if char not in 'IXC':
+                    violated_rules.append(self.ROMAN_NUMERAL_RULES[1])
+                if larger_value_seen:
+                    violated_rules.append(self.ROMAN_NUMERAL_RULES[2])
+
+            # Skips rule
+            if value < prev_value and prev_value / value > 10:
+                violated_rules.append(self.ROMAN_NUMERAL_RULES[3])
+
+            # VLD rule and tracking for repeatable subtractives
             if char in 'VLD':
                 if repeat_count > 1:
                     violated_rules.append(self.ROMAN_NUMERAL_RULES[4])
+            if value > prev_value:
+                larger_value_seen = True
+
+            prev_value = value  # Update previous value
 
         return decimal_sum, violated_rules
 
@@ -125,7 +148,6 @@ class NumberConverter:
         """Converts the given number to its corresponding representation"""
         return number.convert()
 
-
 class DataLogger(metaclass=Singleton):
     """Class responsible for logging data to files"""
 
@@ -134,9 +156,9 @@ class DataLogger(metaclass=Singleton):
 
     def create_files(self):
         """Creates the istorija.txt and duomenys.txt files if they don't exist"""
-        with open("istorija.txt", "a"):
+        with open("../../Downloads/istorija.txt", "a"):
             pass
-        with open("duomenys.txt", "a") as duomenys_file:
+        with open("../../Downloads/duomenys.txt", "a") as duomenys_file:
             if duomenys_file.tell() == 0:
                 duomenys_file.write("Number of times code was initiated: 1\n")
                 duomenys_file.write("Number of requests: 0\n")
@@ -145,10 +167,10 @@ class DataLogger(metaclass=Singleton):
 
     def log_data(self, log_message, conversion_type):
         """Logs the conversion data to files"""
-        with open("istorija.txt", "a") as istorija_file:
+        with open("../../Downloads/istorija.txt", "a") as istorija_file:
             istorija_file.write(log_message + "\n")
 
-        with open("duomenys.txt", "r") as duomenys_file:
+        with open("../../Downloads/duomenys.txt", "r") as duomenys_file:
             lines = duomenys_file.readlines()
 
         num_requests = int(lines[1].split(":")[1].strip())
@@ -161,7 +183,7 @@ class DataLogger(metaclass=Singleton):
         elif conversion_type == "decimal_to_roman":
             num_decimal_to_roman += 1
 
-        with open("duomenys.txt", "w") as duomenys_file:
+        with open("../../Downloads/duomenys.txt", "w") as duomenys_file:
             duomenys_file.write(f"Number of times code was initiated: {int(lines[0].split(':')[1].strip()) + 1}\n")
             duomenys_file.write(f"Number of requests: {num_requests}\n")
             duomenys_file.write(f"Number of Roman to decimal conversions: {num_roman_to_decimal}\n")
@@ -170,7 +192,7 @@ class DataLogger(metaclass=Singleton):
     def print_istorija(self):
         """Prints the contents of istorija.txt on code launch if the file exists"""
         try:
-            with open("istorija.txt", "r") as istorija_file:
+            with open("../../Downloads/istorija.txt", "r") as istorija_file:
                 print("Contents of istorija.txt:")
                 print(istorija_file.read())
                 print()
@@ -193,7 +215,7 @@ class UserInterface:
             if user_input == "exit":
                 break
             elif user_input == "duom":
-                with open("duomenys.txt", "r") as duomenys_file:
+                with open("../../Downloads/duomenys.txt", "r") as duomenys_file:
                     print("Contents of duomenys.txt:")
                     print(duomenys_file.read())
                     print()
@@ -204,10 +226,22 @@ class UserInterface:
         """Handles the user input and performs the conversion"""
         try:
             number = NumberFactory.create_number(user_input)
-            converted_number = self.converter.convert(number)
+            converted_result = self.converter.convert(number)
+
             conversion_type = "decimal_to_roman" if isinstance(number, DecimalNumber) else "roman_to_decimal"
-            self.logger.log_data(f"{user_input} is a {number.__class__.__name__}, and its converted value is {converted_number}", conversion_type)
-            print(f"{user_input} is a {number.__class__.__name__}, and its converted value is {converted_number}")
+
+            if isinstance(converted_result, tuple):
+                decimal_value, violated_rules = converted_result
+                rule_violations = ", ".join([rule[1] for rule in violated_rules])
+                log_message = f"{user_input} is a {number.__class__.__name__}, and its converted value is {decimal_value}"
+                if rule_violations:
+                    log_message += f", {rule_violations}"
+                self.logger.log_data(log_message, conversion_type)
+                print(log_message)
+            else:
+                self.logger.log_data(f"{user_input} is a {number.__class__.__name__}, and its converted value is {converted_result}", conversion_type)
+                print(f"{user_input} is a {number.__class__.__name__}, and its converted value is {converted_result}")
+
         except ValueError as e:
             self.logger.log_data(f"Invalid input: {user_input}", "error")
             print(e)
