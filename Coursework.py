@@ -73,11 +73,11 @@ class DecimalNumber(Number):
 
 class RomanNumber(Number):
     ROMAN_NUMERAL_RULES = [
-        ("Repeats", "A numeral cannot be repeated more than three times. (IIII is illegal)"),
-        ("Subtractives", "Only I, X, and C can be used as subtractives."),
-        ("Repeatable Subtractives", "Only one I, X, and C can be subtracted from two larger numerals."),
-        ("Skips", "Only one numeral can be skipped when subtracting (IX is valid, but IC is not)."),
-        ("VLD", "The letters V, L, and D cannot be repeated."),
+        ("Repeats", "ILLEGAL NUMBER DETECTED. A numeral cannot be repeated more than three times. (IIII is illegal)"),
+        ("Subtractives", "ILLEGAL NUMBER DETECTED. Only I, X, and C can be used as subtractives."),
+        ("Repeatable Subtractives", "ILLEGAL NUMBER DETECTED. Only one I, X, and C can be subtracted from two larger numerals."),
+        ("Skips", "ILLEGAL NUMBER DETECTED. Only one numeral can be skipped when subtracting (IX is valid, but IC is not)."),
+        ("VLD", "ILLEGAL NUMBER DETECTED. The letters V, L, and D cannot be repeated."),
     ]
 
     def convert(self):
@@ -106,7 +106,9 @@ class RomanNumber(Number):
         subtractive_used = False  # For tracking subtractives
         larger_value_seen = False  # For repeatable subtractives check
 
-        for char in roman:
+        for i, char in enumerate(roman):
+            value = roman_to_decimal[char]
+
             if char == last_char:
                 repeat_count += 1
 
@@ -119,7 +121,7 @@ class RomanNumber(Number):
                 last_char = char
 
             # Subtractives rules
-            if value < prev_value:
+            if i < len(roman) - 1 and value < roman_to_decimal[roman[i + 1]]:
                 subtractive_used = True
                 if char not in 'IXC':
                     violated_rules.append(self.ROMAN_NUMERAL_RULES[1])
@@ -127,7 +129,7 @@ class RomanNumber(Number):
                     violated_rules.append(self.ROMAN_NUMERAL_RULES[2])
 
             # Skips rule
-            if value < prev_value and prev_value / value > 10:
+            if i < len(roman) - 1 and value < roman_to_decimal[roman[i + 1]] and roman_to_decimal[roman[i + 1]] / value > 10:
                 violated_rules.append(self.ROMAN_NUMERAL_RULES[3])
 
             # VLD rule and tracking for repeatable subtractives
