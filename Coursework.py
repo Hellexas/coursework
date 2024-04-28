@@ -9,7 +9,6 @@ class Singleton(type):
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
 
-
 class NumberFactory:
     """Factory class for creating Number objects"""
 
@@ -38,8 +37,6 @@ class NumberFactory:
             except (KeyError, ValueError):
                 raise ValueError("Invalid input. Please enter a valid Roman numeral or decimal number.")
 
-
-
 class Number:
     """Abstract base class for numbers"""
 
@@ -52,7 +49,6 @@ class Number:
     def convert(self):
         """Abstract method to convert the number"""
         raise NotImplementedError("convert method must be implemented in subclasses")
-
 
 class DecimalNumber(Number):
     """Class representing a decimal number"""
@@ -72,12 +68,10 @@ class DecimalNumber(Number):
                 decimal_num -= value
         return RomanNumber(roman_num)
 
-
 class RomanNumber(Number):
     ROMAN_NUMERAL_RULES = [
         ("Repeats", "ILLEGAL NUMBER DETECTED. A numeral cannot be repeated more than three times. (IIII is illegal)"),
         ("Subtractives", "ILLEGAL NUMBER DETECTED. Only I, X, and C can be used as subtractives."),
-        ("Repeatable Subtractives", "ILLEGAL NUMBER DETECTED. Only one I, X, and C can be subtracted from two larger numerals."),
         ("Skips", "ILLEGAL NUMBER DETECTED. Only one numeral can be skipped when subtracting (IX is valid, but IC is not)."),
         ("VLD", "ILLEGAL NUMBER DETECTED. The letters V, L, and D cannot be repeated."),
     ]
@@ -105,8 +99,6 @@ class RomanNumber(Number):
         # Rule violation checks
         last_char = None
         repeat_count = 0
-        subtractive_used = False  # For tracking subtractives
-        larger_value_seen = False  # For repeatable subtractives check
 
         for i, char in enumerate(roman):
             value = roman_to_decimal[char]
@@ -124,22 +116,17 @@ class RomanNumber(Number):
 
             # Subtractives rules
             if i < len(roman) - 1 and value < roman_to_decimal[roman[i + 1]]:
-                subtractive_used = True
                 if char not in 'IXC':
                     violated_rules.append(self.ROMAN_NUMERAL_RULES[1])
-                if larger_value_seen:
-                    violated_rules.append(self.ROMAN_NUMERAL_RULES[2])
 
             # Skips rule
             if i < len(roman) - 1 and value < roman_to_decimal[roman[i + 1]] and roman_to_decimal[roman[i + 1]] / value > 10:
-                violated_rules.append(self.ROMAN_NUMERAL_RULES[3])
+                violated_rules.append(self.ROMAN_NUMERAL_RULES[2])
 
-            # VLD rule and tracking for repeatable subtractives
+            # VLD rule
             if char in 'VLD':
                 if repeat_count > 1:
-                    violated_rules.append(self.ROMAN_NUMERAL_RULES[4])
-            if value > prev_value:
-                larger_value_seen = True
+                    violated_rules.append(self.ROMAN_NUMERAL_RULES[3])
 
             prev_value = value  # Update previous value
 
@@ -151,7 +138,6 @@ class NumberConverter:
     def convert(self, number):
         """Converts the given number to its corresponding representation"""
         return number.convert()
-
 
 class DataLogger(metaclass=Singleton):
     """Class responsible for logging data to files"""
@@ -184,11 +170,14 @@ class DataLogger(metaclass=Singleton):
     def log_data(self, log_message, conversion_type=None):
         """Logs data to files and updates statistics in the data file"""
         # Handle potential 'None' or empty value for log_message
-        if not log_message:  # Check for None or empty string
+        if log_message is None:  # Check for None
             # Get the current date and time
             now = datetime.now()
             timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
             log_message = f"Application started at {timestamp}"
+        elif not log_message:  # Check for empty string
+            log_message = "Application started"  # or any other default message
+
         with open(self.log_file, "a") as istorija_file:
             istorija_file.write(log_message + "\n")
 
