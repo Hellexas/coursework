@@ -1,5 +1,7 @@
 import os
 from datetime import datetime
+
+
 class Singleton(type):
     """Singleton metaclass"""
     _instances = {}
@@ -8,6 +10,17 @@ class Singleton(type):
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
+
+
+class InvalidDecimalError(ValueError):
+    """Raised when the decimal input is not a valid integer or is outside the supported range (1-3999)."""
+    pass
+
+
+class RomanNumeralOutOfRangeError(ValueError):
+    """Raised when the Roman numeral input represents a value outside the supported range (1-3999)."""
+    pass
+
 
 class NumberFactory:
     """Factory class for creating Number objects"""
@@ -26,16 +39,25 @@ class NumberFactory:
         Raises:
             ValueError: If the input value is not a valid Roman numeral or decimal number.
         """
+        if any(char.isdigit() for char in value) and any(char.isalpha() for char in value):
+            raise ValueError("Invalid input. Please enter a valid Roman numeral or decimal number.")
+
         try:
             # Check if the input is a decimal number
             decimal_value = int(value)
+            if decimal_value < 1 or decimal_value > 3999:
+                raise InvalidDecimalError(f"Decimal value {value} is outside the supported range (1-3999).")
             return DecimalNumber(decimal_value)
         except ValueError:
             # Assume the input is a Roman numeral
             try:
-                return RomanNumber(value.upper())
+                roman_num = RomanNumber(value.upper())
+                if roman_num.convert()[0] < 1 or roman_num.convert()[0] > 3999:
+                    raise RomanNumeralOutOfRangeError(f"Roman numeral {value} represents a value outside the supported range (1-3999).")
+                return roman_num
             except (KeyError, ValueError):
                 raise ValueError("Invalid input. Please enter a valid Roman numeral or decimal number.")
+
 
 class Number:
     """Abstract base class for numbers"""
@@ -49,6 +71,7 @@ class Number:
     def convert(self):
         """Abstract method to convert the number"""
         raise NotImplementedError("convert method must be implemented in subclasses")
+
 
 class DecimalNumber(Number):
     """Class representing a decimal number"""
@@ -67,6 +90,7 @@ class DecimalNumber(Number):
                 roman_num += symbol
                 decimal_num -= value
         return RomanNumber(roman_num)
+
 
 class RomanNumber(Number):
     ROMAN_NUMERAL_RULES = [
@@ -128,9 +152,8 @@ class RomanNumber(Number):
                 if repeat_count > 1:
                     violated_rules.append(self.ROMAN_NUMERAL_RULES[3])
 
-            prev_value = value  # Update previous value
-
         return decimal_sum, violated_rules
+
 
 class NumberConverter:
     """Class responsible for converting numbers"""
@@ -138,6 +161,7 @@ class NumberConverter:
     def convert(self, number):
         """Converts the given number to its corresponding representation"""
         return number.convert()
+
 
 class DataLogger(metaclass=Singleton):
     """Class responsible for logging data to files"""
@@ -219,6 +243,7 @@ class DataLogger(metaclass=Singleton):
         except FileNotFoundError:
             pass
 
+
 class UserInterface:
     def __init__(self):
         self.converter = NumberConverter()
@@ -288,6 +313,7 @@ class UserInterface:
         except ValueError as e:
             self.logger.log_data(f"Invalid input: {user_input}", "error")
             print(e)
+
 
 # Run the user interface
 UserInterface().run()
