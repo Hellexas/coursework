@@ -53,7 +53,8 @@ class NumberFactory:
             try:
                 roman_num = RomanNumber(value.upper())
                 if roman_num.convert()[0] < 1 or roman_num.convert()[0] > 3999:
-                    raise RomanNumeralOutOfRangeError(f"Roman numeral {value} represents a value outside the supported range (1-3999).")
+                    raise RomanNumeralOutOfRangeError(f"Roman numeral {value} represents"
+                                                      f" a value outside the supported range (1-3999).")
                 return roman_num
             except (KeyError, ValueError):
                 raise ValueError("Invalid input. Please enter a valid Roman numeral or decimal number.")
@@ -144,7 +145,8 @@ class RomanNumber(Number):
                     violated_rules.append(self.ROMAN_NUMERAL_RULES[1])
 
             # Skips rule
-            if i < len(roman) - 1 and value < roman_to_decimal[roman[i + 1]] and roman_to_decimal[roman[i + 1]] / value > 10:
+            if i < len(roman) - 1 and value < roman_to_decimal[roman[i + 1]] and\
+                    roman_to_decimal[roman[i + 1]] / value > 10:
                 violated_rules.append(self.ROMAN_NUMERAL_RULES[2])
 
             # VLD rule
@@ -186,7 +188,7 @@ class DataLogger(metaclass=Singleton):
     def initialize_datafile(self):
         """Creates the data file if it doesn't exist or overwrites with initial data."""
         with open(self.data_file, "w") as duomenys_file:
-            duomenys_file.write("Number of times code was initiated: 1\n")
+            duomenys_file.write("Number of times code was initiated: 0\n")
             duomenys_file.write("Number of requests: 0\n")
             duomenys_file.write("Number of Roman to decimal conversions: 0\n")
             duomenys_file.write("Number of decimal to Roman conversions: 0\n")
@@ -254,14 +256,15 @@ class UserInterface:
         self.logger.print_istorija()
 
         while True:
-            user_input = input("Enter a Roman numeral or a decimal number (or 'duom' to print duomenys.txt, 'logs' to print istorija.txt, 'clear' to clear logs, 'exit' to quit): ").lower()
+            user_input = input("Enter a Roman numeral or a decimal number (or 'duom' to print duomenys.txt, "
+                               "'logs' to print istorija.txt, 'clear' to clear logs, 'exit' to quit): ").lower()
             if user_input == "exit":
                 break
             elif user_input == "duom":
                 self.print_duomenys()
-            elif user_input == "clear":  # New functionality!
+            elif user_input == "clear":
                 self.clear_logs()
-            elif user_input == "logs":  # New functionality!
+            elif user_input == "logs":
                 self.logger.print_istorija()
             else:
                 self.handle_user_input(user_input)
@@ -301,13 +304,15 @@ class UserInterface:
             if isinstance(converted_result, tuple):
                 decimal_value, violated_rules = converted_result
                 rule_violations = ", ".join([rule[1] for rule in violated_rules])
-                log_message = f"{user_input.upper()} is a {number.__class__.__name__}, and its converted value is {decimal_value}"
+                log_message = f"{user_input.upper()} is a {number.__class__.__name__}," \
+                              f" and its converted value is {decimal_value}"
                 if rule_violations:
                     log_message += f", {rule_violations}"
                 self.logger.log_data(log_message, conversion_type)
                 print(log_message)
             else:
-                self.logger.log_data(f"{user_input} is a {number.__class__.__name__}, and its converted value is {converted_result}", conversion_type)
+                self.logger.log_data(f"{user_input} is a {number.__class__.__name__},"
+                                     f" and its converted value is {converted_result}", conversion_type)
                 print(f"{user_input} is a {number.__class__.__name__}, and its converted value is {converted_result}")
 
         except ValueError as e:
