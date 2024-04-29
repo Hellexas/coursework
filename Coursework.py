@@ -39,25 +39,39 @@ class NumberFactory:
         Raises:
             ValueError: If the input value is not a valid Roman numeral or decimal number.
         """
+        # Check if the input contains both digits and letters
         if any(char.isdigit() for char in value) and any(char.isalpha() for char in value):
             raise ValueError("Invalid input. Please enter a valid Roman numeral or decimal number.")
 
+        # Check if the input is a valid decimal number
         try:
-            # Check if the input is a decimal number
             decimal_value = int(value)
             if decimal_value < 1 or decimal_value > 3999:
                 raise InvalidDecimalError(f"Decimal value {value} is outside the supported range (1-3999).")
             return DecimalNumber(decimal_value)
         except ValueError:
-            # Assume the input is a Roman numeral
+            # Check if the input is a valid Roman numeral
+            if not all(char.isalpha() for char in value):
+                raise ValueError("Invalid input. Please enter a valid Roman numeral or decimal number.")
+
             try:
                 roman_num = RomanNumber(value.upper())
-                if roman_num.convert()[0] < 1 or roman_num.convert()[0] > 3999:
-                    raise RomanNumeralOutOfRangeError(f"Roman numeral {value} represents"
-                                                      f" a value outside the supported range (1-3999).")
+                conversion_result = roman_num.convert()
+                if isinstance(conversion_result, tuple):
+                    decimal_value, violated_rules = conversion_result
+                    if decimal_value < 1 or decimal_value > 3999:
+                        raise RomanNumeralOutOfRangeError(f"Roman numeral {value} represents"
+                                                          f" a value outside the supported range (1-3999).")
+                    if violated_rules:
+                        raise ValueError(", ".join([rule[1] for rule in violated_rules]))
+                else:
+                    decimal_value = conversion_result
+                    if decimal_value < 1 or decimal_value > 3999:
+                        raise RomanNumeralOutOfRangeError(f"Roman numeral {value} represents"
+                                                          f" a value outside the supported range (1-3999).")
                 return roman_num
-            except (KeyError, ValueError):
-                raise ValueError("Invalid input. Please enter a valid Roman numeral or decimal number.")
+            except (KeyError, ValueError) as e:
+                raise ValueError(str(e))
 
 
 class Number:
@@ -165,7 +179,10 @@ class RomanNumber(Number):
             if str(expected_roman) != roman:
                 violated_rules.append(self.ROMAN_NUMERAL_RULES[4])
 
-        return decimal_sum, violated_rules
+        if violated_rules:
+            return decimal_sum, violated_rules
+        else:
+            return decimal_sum
 
 
 class NumberConverter:
@@ -250,7 +267,7 @@ class DataLogger(metaclass=Singleton):
         """Prints the contents of the log file (istorija.txt)."""
         try:
             with open(self.log_file, "r") as istorija_file:
-                print("Contents of istorija.txt:")
+                print("\nContents of istorija.txt:")
                 print(istorija_file.read())
                 print()
         except FileNotFoundError:
@@ -298,7 +315,7 @@ class UserInterface:
         data_file_path = os.path.join(os.getcwd(), "duomenys.txt")  # Relative to current directory
         try:
             with open(data_file_path, "r") as duomenys_file:
-                print("Contents of duomenys.txt:")
+                print("\nContents of duomenys.txt:")
                 print(duomenys_file.read())
                 print()
         except FileNotFoundError:
@@ -314,20 +331,23 @@ class UserInterface:
 
             if isinstance(converted_result, tuple):
                 decimal_value, violated_rules = converted_result
-                if violated_rules:
-                    rule_violations = ", ".join([rule[1] for rule in violated_rules])
-                    log_message = f"{user_input.upper()} is a {number.__class__.__name__}," \
-                                  f" and its converted value is {decimal_value}, {rule_violations}"
-                    self.logger.log_data(log_message, conversion_type)
-                    print(log_message)
-                else:
-                    self.logger.log_data(f"{user_input} is a {number.__class__.__name__},"
-                                         f" and its converted value is {converted_result}", conversion_type)
-                    print(f"{user_input} is a {number.__class__.__name__}, and its converted value is {converted_result}")
+                rule_violations = ", ".join([rule[1] for rule in violated_rules])
+                log_message = f"{user_input.upper()} is a {number.__class__.__name__}," \
+                              f" and its converted value is {decimal_value}, {rule_violations}"
+                self.logger.log_data(log_message, conversion_type)
+                print(log_message)
+            else:
+                self.logger.log_data(f"{user_input} is a {number.__class__.__name__},"
+                                     f" and its converted value is {converted_result}", conversion_type)
+                print(f"{user_input} is a {number.__class__.__name__}, and its converted value is {converted_result}")
 
         except ValueError as e:
-            self.logger.log_data(f"Invalid input: {user_input}", "error")
-            print(e)
+            if str(e).startswith("Invalid input"):
+                self.logger.log_data(f"Invalid input: {user_input}", "error")
+                print(e)
+            else:
+                self.logger.log_data(f"Error: {e}", "error")
+                print(f"Error: {e}")
 
 
 # Run the user interface
