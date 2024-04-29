@@ -99,6 +99,7 @@ class RomanNumber(Number):
         ("Subtractives", "ILLEGAL NUMBER DETECTED. Only I, X, and C can be used as subtractives."),
         ("Skips", "ILLEGAL NUMBER DETECTED. Only one numeral can be skipped when subtracting (IX is valid, but IC is not)."),
         ("VLD", "ILLEGAL NUMBER DETECTED. The letters V, L, and D cannot be repeated."),
+        ("UserInputMismatch", "ILLEGAL NUMBER DETECTED. User input does not match code expectations.")
     ]
 
     def convert(self):
@@ -134,6 +135,7 @@ class RomanNumber(Number):
                 # Repeats rule
                 if repeat_count > 3:
                     violated_rules.append(self.ROMAN_NUMERAL_RULES[0])
+                    break  # Exit the loop if any rule is violated
 
             else:
                 repeat_count = 1
@@ -143,16 +145,25 @@ class RomanNumber(Number):
             if i < len(roman) - 1 and value < roman_to_decimal[roman[i + 1]]:
                 if char not in 'IXC':
                     violated_rules.append(self.ROMAN_NUMERAL_RULES[1])
+                    break  # Exit the loop if any rule is violated
 
             # Skips rule
             if i < len(roman) - 1 and value < roman_to_decimal[roman[i + 1]] and\
                     roman_to_decimal[roman[i + 1]] / value > 10:
                 violated_rules.append(self.ROMAN_NUMERAL_RULES[2])
+                break  # Exit the loop if any rule is violated
 
             # VLD rule
             if char in 'VLD':
                 if repeat_count > 1:
                     violated_rules.append(self.ROMAN_NUMERAL_RULES[3])
+                    break  # Exit the loop if any rule is violated
+
+        # User input mismatch rule
+        if not violated_rules:
+            expected_roman = DecimalNumber(decimal_sum).convert()
+            if str(expected_roman) != roman:
+                violated_rules.append(self.ROMAN_NUMERAL_RULES[4])
 
         return decimal_sum, violated_rules
 
@@ -303,17 +314,16 @@ class UserInterface:
 
             if isinstance(converted_result, tuple):
                 decimal_value, violated_rules = converted_result
-                rule_violations = ", ".join([rule[1] for rule in violated_rules])
-                log_message = f"{user_input.upper()} is a {number.__class__.__name__}," \
-                              f" and its converted value is {decimal_value}"
-                if rule_violations:
-                    log_message += f", {rule_violations}"
-                self.logger.log_data(log_message, conversion_type)
-                print(log_message)
-            else:
-                self.logger.log_data(f"{user_input} is a {number.__class__.__name__},"
-                                     f" and its converted value is {converted_result}", conversion_type)
-                print(f"{user_input} is a {number.__class__.__name__}, and its converted value is {converted_result}")
+                if violated_rules:
+                    rule_violations = ", ".join([rule[1] for rule in violated_rules])
+                    log_message = f"{user_input.upper()} is a {number.__class__.__name__}," \
+                                  f" and its converted value is {decimal_value}, {rule_violations}"
+                    self.logger.log_data(log_message, conversion_type)
+                    print(log_message)
+                else:
+                    self.logger.log_data(f"{user_input} is a {number.__class__.__name__},"
+                                         f" and its converted value is {converted_result}", conversion_type)
+                    print(f"{user_input} is a {number.__class__.__name__}, and its converted value is {converted_result}")
 
         except ValueError as e:
             self.logger.log_data(f"Invalid input: {user_input}", "error")
