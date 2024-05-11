@@ -1,79 +1,65 @@
 import unittest
-from unittest.mock import patch
-from io import StringIO
-from coursework import UserInterface
+from coursework import *  # Import all classes and functions from coursework.py
 
+class CourseworkTest(unittest.TestCase):
 
-class TestUserInputs(unittest.TestCase):
-    @patch('sys.stdout', new_callable=StringIO)
-    def test_decimal_input(self, mock_stdout):
-        ui = UserInterface()
+    def test_invalid_input(self):
+        """Test if ValueError is raised for invalid inputs (decimals, Romans, mixed)"""
+        with self.assertRaises(ValueError):
+            NumberFactory.create_number("IIII")  # Invalid Roman
+        with self.assertRaises(ValueError):
+            NumberFactory.create_number("IM")  # Skips
+        with self.assertRaises(ValueError):
+            NumberFactory.create_number("IXIXI")  # Nonsense
+        with self.assertRaises(ValueError):
+            NumberFactory.create_number("MMMM")  # Out of range
 
-        # Test valid decimal input
-        ui.handle_user_input("123")
-        output = mock_stdout.getvalue().strip()
-        self.assertEqual(output, "123 is a DecimalNumber, and its converted value is CXXIII")
-        mock_stdout.truncate(0)
-        mock_stdout.seek(0)
+    def setUp(self):
+        self.converter = NumberConverter()
+        self.logger = DataLogger()
 
-        # Test decimal input at boundary cases
-        ui.handle_user_input("1")
-        output = mock_stdout.getvalue().strip()
-        self.assertEqual(output, "1 is a DecimalNumber, and its converted value is I")
-        mock_stdout.truncate(0)
-        mock_stdout.seek(0)
+    def test_decimal_to_roman_conversion(self):
+        """Test various decimal to Roman numeral conversions"""
+        test_cases = [(1, 'I'), (9, 'IX'), (49, 'XLIX'), (444, 'CDXLIV'), (999, 'CMXCIX'), (3999, 'MMMCMXCIX')]
+        for decimal, expected_roman in test_cases:
+            decimal_num = DecimalNumber(decimal)
+            converted_roman = self.converter.convert(decimal_num)
+            self.assertEqual(str(converted_roman), expected_roman)
 
-        ui.handle_user_input("3999")
-        output = mock_stdout.getvalue().strip()
-        self.assertEqual(output, "3999 is a DecimalNumber, and its converted value is MMMCMXCIX")
-        mock_stdout.truncate(0)
-        mock_stdout.seek(0)
+    def test_roman_to_decimal_conversion(self):
+        """Test various Roman numeral to decimal conversions"""
+        test_cases = [('I', 1), ('IX', 9), ('XLIX', 49), ('CDXLIV', 444), ('CMXCIX', 999), ('MMMCMXCIX', 3999)]
+        for roman, expected_decimal in test_cases:
+            roman_num = RomanNumber(roman)
+            converted_decimal = self.converter.convert(roman_num)
+            self.assertEqual(converted_decimal, expected_decimal)
 
-        # Test invalid decimal input
-        ui.handle_user_input("4000")
-        output = mock_stdout.getvalue().strip()
-        self.assertEqual(output, "Invalid input. Please enter a valid Roman numeral or decimal number.")
-        mock_stdout.truncate(0)
-        mock_stdout.seek(0)
+    def test_invalid_roman_numeral_conversion(self):
+        """Test conversions with invalid Roman numerals"""
+        invalid_romans = ['IIII', 'IM', 'VX', 'MMMM', 'IXIX']  # Examples of invalid numerals
+        for roman in invalid_romans:
+            with self.assertRaises(ValueError):
+                RomanNumber(roman).convert()
 
-        ui.handle_user_input("-10")
-        output = mock_stdout.getvalue().strip()
-        self.assertEqual(output, "Invalid input. Please enter a valid Roman numeral or decimal number.")
+    def test_data_logger_singleton(self):
+        """Ensure DataLogger is a singleton"""
+        logger1 = DataLogger()
+        logger2 = DataLogger()
+        self.assertIs(logger1, logger2)
 
-    @patch('sys.stdout', new_callable=StringIO)
-    def test_roman_input(self, mock_stdout):
-        ui = UserInterface()
+    def test_data_logger_logging(self):
+        """Test logging of conversions and errors"""
+        self.logger.log_data("Test log message", "roman_to_decimal")
+        with open(self.logger.log_file, "r") as log_file:
+            last_log_entry = log_file.readlines()[-1].strip()
+        self.assertIn("Test log message", last_log_entry)
 
-        # Test valid Roman input
-        ui.handle_user_input("CXXIII")
-        output = mock_stdout.getvalue().strip()
-        self.assertEqual(output, "CXXIII is a RomanNumber, and its converted value is 123")
-        mock_stdout.truncate(0)
-        mock_stdout.seek(0)
-
-        # Test Roman input at boundary cases
-        ui.handle_user_input("I")
-        output = mock_stdout.getvalue().strip()
-        self.assertEqual(output, "I is a RomanNumber, and its converted value is 1")
-        mock_stdout.truncate(0)
-        mock_stdout.seek(0)
-
-        ui.handle_user_input("MMMCMXCIX")
-        output = mock_stdout.getvalue().strip()
-        self.assertEqual(output, "MMMCMXCIX is a RomanNumber, and its converted value is 3999")
-        mock_stdout.truncate(0)
-        mock_stdout.seek(0)
-
-        # Test invalid Roman input
-        ui.handle_user_input("MMMM")
-        output = mock_stdout.getvalue().strip()
-        self.assertEqual(output, "Invalid input. Please enter a valid Roman numeral or decimal number.")
-        mock_stdout.truncate(0)
-        mock_stdout.seek(0)
-
-        ui.handle_user_input("IC")
-        output = mock_stdout.getvalue().strip()
-        self.assertEqual(output, "IC is a RomanNumber, and its converted value is 99, ILLEGAL NUMBER DETECTED. Only one numeral can be skipped when subtracting (IX is valid, but IC is not).")
+    def test_data_logger_datafile(self):
+        """Ensure the data file is created and updated correctly. Data file must be cleared prior to running this test"""
+        self.logger.log_data("Test log message", "decimal_to_roman")
+        with open(self.logger.data_file, "r") as data_file:
+            num_decimal_to_roman = int(data_file.readlines()[3].split(":")[1].strip())
+        self.assertEqual(num_decimal_to_roman, 1)
 
 
 if __name__ == '__main__':
