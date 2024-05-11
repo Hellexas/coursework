@@ -38,6 +38,7 @@ class NumberFactory:
 
         Raises:
             ValueError: If the input value is not a valid Roman numeral or decimal number.
+            InvalidDecimalError: If the decimal input is outside the supported range (1-3999).
         """
         # Check if the input contains both digits and letters
         if any(char.isdigit() for char in value) and any(char.isalpha() for char in value):
@@ -48,30 +49,33 @@ class NumberFactory:
             decimal_value = int(value)
             if decimal_value < 1 or decimal_value > 3999:
                 raise InvalidDecimalError(f"Decimal value {value} is outside the supported range (1-3999).")
-            return DecimalNumber(decimal_value)
+            else:
+                return DecimalNumber(decimal_value)
         except ValueError:
-            # Check if the input is a valid Roman numeral
-            if not all(char.isalpha() for char in value):
-                raise ValueError("Invalid input. Please enter a valid Roman numeral or decimal number.")
+            pass  # Move to Roman numeral check
 
-            try:
-                roman_num = RomanNumber(value.upper())
-                conversion_result = roman_num.convert()
-                if isinstance(conversion_result, tuple):
-                    decimal_value, violated_rules = conversion_result
-                    if decimal_value < 1 or decimal_value > 3999:
-                        raise RomanNumeralOutOfRangeError(f"Roman numeral {value} represents"
-                                                          f" a value outside the supported range (1-3999).")
-                    if violated_rules:
-                        raise ValueError(", ".join([rule[1] for rule in violated_rules]))
-                else:
-                    decimal_value = conversion_result
-                    if decimal_value < 1 or decimal_value > 3999:
-                        raise RomanNumeralOutOfRangeError(f"Roman numeral {value} represents"
-                                                          f" a value outside the supported range (1-3999).")
-                return roman_num
-            except (KeyError, ValueError) as e:
-                raise ValueError(str(e))
+        # Check if the input is a valid Roman numeral
+        if not all(char.isalpha() for char in value):
+            raise ValueError("Invalid input. Please enter a valid Roman numeral or decimal number.")
+
+        try:
+            roman_num = RomanNumber(value.upper())
+            conversion_result = roman_num.convert()
+            if isinstance(conversion_result, tuple):
+                decimal_value, violated_rules = conversion_result
+                if decimal_value < 1 or decimal_value > 3999:
+                    raise RomanNumeralOutOfRangeError(f"Roman numeral {value} represents"
+                                                      f" a value outside the supported range (1-3999).")
+                if violated_rules:
+                    raise ValueError(", ".join([rule[1] for rule in violated_rules]))
+            else:
+                decimal_value = conversion_result
+                if decimal_value < 1 or decimal_value > 3999:
+                    raise RomanNumeralOutOfRangeError(f"Roman numeral {value} represents"
+                                                      f" a value outside the supported range (1-3999).")
+            return roman_num
+        except (KeyError, ValueError) as e:
+            raise ValueError(str(e))
 
 
 class Number:
@@ -109,11 +113,11 @@ class DecimalNumber(Number):
 
 class RomanNumber(Number):
     ROMAN_NUMERAL_RULES = [
-        ("Repeats", "ILLEGAL NUMBER DETECTED. A numeral cannot be repeated more than three times. (IIII is illegal)"),
-        ("Subtractives", "ILLEGAL NUMBER DETECTED. Only I, X, and C can be used as subtractives."),
-        ("Skips", "ILLEGAL NUMBER DETECTED. Only one numeral can be skipped when subtracting (IX is valid, but IC is not)."),
-        ("VLD", "ILLEGAL NUMBER DETECTED. The letters V, L, and D cannot be repeated."),
-        ("UserInputMismatch", "ILLEGAL NUMBER DETECTED. User input does not match code expectations.")
+        ("Repeats", "A numeral cannot be repeated more than three times. (IIII is illegal)"),
+        ("Subtractives", "Only I, X, and C can be used as subtractives."),
+        ("Skips", "Only one numeral can be skipped when subtracting (IX is valid, but IC is not)."),
+        ("VLD", "The letters V, L, and D cannot be repeated."),
+        ("UserInputMismatch", "User input does not match code expectations.")
     ]
 
     def convert(self):
@@ -126,7 +130,7 @@ class RomanNumber(Number):
         prev_value = 0
 
         roman = str(self.value)  # Store string version for analysis
-        violated_rules = []
+        violated_rules = [False] * len(self.ROMAN_NUMERAL_RULES)  # Initialize rule violation flags
 
         for char in roman[::-1]:
             value = roman_to_decimal[char]
@@ -148,8 +152,7 @@ class RomanNumber(Number):
 
                 # Repeats rule
                 if repeat_count > 3:
-                    violated_rules.append(self.ROMAN_NUMERAL_RULES[0])
-                    break  # Exit the loop if any rule is violated
+                    violated_rules[0] = True
 
             else:
                 repeat_count = 1
@@ -158,29 +161,33 @@ class RomanNumber(Number):
             # Subtractives rules
             if i < len(roman) - 1 and value < roman_to_decimal[roman[i + 1]]:
                 if char not in 'IXC':
-                    violated_rules.append(self.ROMAN_NUMERAL_RULES[1])
-                    break  # Exit the loop if any rule is violated
+                    violated_rules[1] = True
 
             # Skips rule
-            if i < len(roman) - 1 and value < roman_to_decimal[roman[i + 1]] and\
+            if i < len(roman) - 1 and value < roman_to_decimal[roman[i + 1]] and \
                     roman_to_decimal[roman[i + 1]] / value > 10:
-                violated_rules.append(self.ROMAN_NUMERAL_RULES[2])
-                break  # Exit the loop if any rule is violated
+                violated_rules[2] = True
 
             # VLD rule
             if char in 'VLD':
                 if repeat_count > 1:
-                    violated_rules.append(self.ROMAN_NUMERAL_RULES[3])
-                    break  # Exit the loop if any rule is violated
+                    violated_rules[3] = True
 
         # User input mismatch rule
-        if not violated_rules:
-            expected_roman = DecimalNumber(decimal_sum).convert()
-            if str(expected_roman) != roman:
-                violated_rules.append(self.ROMAN_NUMERAL_RULES[4])
+        expected_roman = DecimalNumber(decimal_sum).convert()
+        if str(expected_roman) != roman and not any(violated_rules[:4]):
+            violated_rules[4] = True
 
-        if violated_rules:
-            return decimal_sum, violated_rules
+        if any(violated_rules):
+            violated_rules_text = []
+            for i, rule_violated in enumerate(violated_rules):
+                if rule_violated:
+                    violated_rules_text.append(self.ROMAN_NUMERAL_RULES[i][1])
+
+            raise ValueError(
+                f"Invalid Roman numeral: {roman}.  "
+                + ", ".join(violated_rules_text)
+            )
         else:
             return decimal_sum
 
@@ -277,7 +284,7 @@ class DataLogger(metaclass=Singleton):
 class UserInterface:
     def __init__(self):
         self.converter = NumberConverter()
-        self.logger = DataLogger()  # Default file names used
+        self.logger = DataLogger()
 
     def run(self):
         self.logger.log_data(log_message=None)
@@ -331,9 +338,15 @@ class UserInterface:
 
             if isinstance(converted_result, tuple):
                 decimal_value, violated_rules = converted_result
-                rule_violations = ", ".join([rule[1] for rule in violated_rules])
+                rule_violations = []
+                for rule in violated_rules:
+                    rule_violations.append(rule[1])
+
                 log_message = f"{user_input.upper()} is a {number.__class__.__name__}," \
-                              f" and its converted value is {decimal_value}, {rule_violations}"
+                              f" and its converted value is {decimal_value}."
+                if rule_violations:
+                    log_message += " " + " ".join(rule_violations)
+
                 self.logger.log_data(log_message, conversion_type)
                 print(log_message)
             else:
@@ -341,13 +354,16 @@ class UserInterface:
                                      f" and its converted value is {converted_result}", conversion_type)
                 print(f"{user_input} is a {number.__class__.__name__}, and its converted value is {converted_result}")
 
+        except InvalidDecimalError as e:
+            error_message = str(e)
+            self.logger.log_data(error_message, "error")
+            print(error_message)
+        except RomanNumeralOutOfRangeError as e:
+            self.logger.log_data(str(e), "error")
+            print(e)
         except ValueError as e:
-            if str(e).startswith("Invalid input"):
-                self.logger.log_data(f"Invalid input: {user_input}", "error")
-                print(e)
-            else:
-                self.logger.log_data(f"Error: {e}", "error")
-                print(f"Error: {e}")
+            self.logger.log_data(str(e), "error")
+            print(e)
 
 
 # Run the user interface
