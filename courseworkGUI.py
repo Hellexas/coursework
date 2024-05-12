@@ -6,7 +6,7 @@ class NumberConverterUI(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Number Converter")
-        self.geometry("800x250")
+        self.geometry("690x260")
 
         self.dark_mode = False  # Initial state is light mode
         self.style = ttk.Style()
@@ -71,7 +71,7 @@ class NumberConverterUI(tk.Tk):
 
                 self.logger.log_data(log_message, conversion_type)
                 self.result_label.delete('1.0', 'end')  # Clear the text area
-                self.result_label.insert('end', log_message)  # Insert the new log message
+                self.result_label.insert('end', log_message)
             else:
                 self.logger.log_data(f"{user_input} is a {number.__class__.__name__},"
                                      f" and its converted value is {converted_result}", conversion_type)
@@ -157,7 +157,7 @@ class NumberConverterUI(tk.Tk):
 
     def set_style(self):
         if self.dark_mode:
-            self.style.theme_use('clam')  # You can experiment with other dark themes
+            self.style.theme_use('clam')
             self.style.configure('.', background='black', foreground='white')
             self.style.configure('TButton', background='gray20', foreground='white')
             self.style.configure('TLabel', background='black', foreground='white')
