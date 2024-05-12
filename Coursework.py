@@ -203,16 +203,16 @@ class NumberConverter:
 class DataLogger(metaclass=Singleton):
     """Class responsible for logging data to files"""
 
-    def __init__(self, log_file="istorija.txt", data_file="duomenys.txt"):
+    def __init__(self, log_file="history.txt", data_file="data.txt"):
         self.log_file = log_file
         self.data_file = data_file
         self.validate_and_initialize_datafile()
 
     def validate_and_initialize_datafile(self):
-        """Checks if duomenys.txt has the required structure. Initializes if needed."""
+        """Checks if data.txt has the required structure. Initializes if needed."""
         try:
-            with open(self.data_file, "r") as duomenys_file:
-                lines = duomenys_file.readlines()
+            with open(self.data_file, "r") as data_file:
+                lines = data_file.readlines()
         except FileNotFoundError:
             self.initialize_datafile()
             return
@@ -222,11 +222,11 @@ class DataLogger(metaclass=Singleton):
 
     def initialize_datafile(self):
         """Creates the data file if it doesn't exist or overwrites with initial data."""
-        with open(self.data_file, "w") as duomenys_file:
-            duomenys_file.write("Number of times code was initiated: 0\n")
-            duomenys_file.write("Number of requests: 0\n")
-            duomenys_file.write("Number of Roman to decimal conversions: 0\n")
-            duomenys_file.write("Number of decimal to Roman conversions: 0\n")
+        with open(self.data_file, "w") as data_file:
+            data_file.write("Number of times code was initiated: 0\n")
+            data_file.write("Number of requests: 0\n")
+            data_file.write("Number of Roman to decimal conversions: 0\n")
+            data_file.write("Number of decimal to Roman conversions: 0\n")
 
     def log_data(self, log_message, conversion_type=None):
         """Logs data to files and updates statistics in the data file"""
@@ -239,12 +239,12 @@ class DataLogger(metaclass=Singleton):
         elif not log_message:  # Check for empty string
             log_message = "Application started"  # or any other default message
 
-        with open(self.log_file, "a") as istorija_file:
-            istorija_file.write(log_message + "\n")
+        with open(self.log_file, "a") as history_file:
+            history_file.write(log_message + "\n")
 
         try:
-            with open(self.data_file, "r") as duomenys_file:
-                lines = duomenys_file.readlines()
+            with open(self.data_file, "r") as data_file:
+                lines = data_file.readlines()
         except FileNotFoundError:
             self.initialize_datafile()
             return
@@ -264,18 +264,18 @@ class DataLogger(metaclass=Singleton):
             elif conversion_type == "decimal_to_roman":
                 num_decimal_to_roman += 1
 
-        with open(self.data_file, "w") as duomenys_file:
-            duomenys_file.write(f"Number of times code was initiated: {num_times_initiated}\n")
-            duomenys_file.write(f"Number of requests: {num_requests}\n")
-            duomenys_file.write(f"Number of Roman to decimal conversions: {num_roman_to_decimal}\n")
-            duomenys_file.write(f"Number of decimal to Roman conversions: {num_decimal_to_roman}\n")
+        with open(self.data_file, "w") as data_file:
+            data_file.write(f"Number of times code was initiated: {num_times_initiated}\n")
+            data_file.write(f"Number of requests: {num_requests}\n")
+            data_file.write(f"Number of Roman to decimal conversions: {num_roman_to_decimal}\n")
+            data_file.write(f"Number of decimal to Roman conversions: {num_decimal_to_roman}\n")
 
-    def print_istorija(self):
-        """Prints the contents of the log file (istorija.txt)."""
+    def print_history(self):
+        """Prints the contents of the log file (history.txt)."""
         try:
-            with open(self.log_file, "r") as istorija_file:
-                print("\nContents of istorija.txt:")
-                print(istorija_file.read())
+            with open(self.log_file, "r") as history_file:
+                print("\nContents of history.txt:")
+                print(history_file.read())
                 print()
         except FileNotFoundError:
             pass
@@ -288,45 +288,45 @@ class UserInterface:
 
     def run(self):
         self.logger.log_data(log_message=None)
-        self.logger.print_istorija()
+        self.logger.print_history()
 
         while True:
-            user_input = input("Enter a Roman numeral or a decimal number (or 'duom' to print duomenys.txt, "
-                               "'logs' to print istorija.txt, 'clear' to clear logs, 'exit' to quit): ").lower()
+            user_input = input("Enter a Roman numeral or a decimal number (or 'data' to print data.txt, "
+                               "'logs' to print history.txt, 'clear' to clear logs, 'exit' to quit): ").lower()
             if user_input == "exit":
                 break
-            elif user_input == "duom":
-                self.print_duomenys()
+            elif user_input == "data":
+                self.print_data()
             elif user_input == "clear":
                 self.clear_logs()
             elif user_input == "logs":
-                self.logger.print_istorija()
+                self.logger.print_history()
             else:
                 self.handle_user_input(user_input)
 
     def clear_logs(self):
-        """Clears the contents of both files and reinitializes duomenys.txt"""
+        """Clears the contents of both files and reinitializes data.txt"""
         for file_path in [self.logger.log_file, self.logger.data_file]:
             try:
                 open(file_path, 'w').close()
                 print(f"Cleared: {file_path}")
 
-                # Reinitialize duomenys.txt if necessary
+                # Reinitialize data.txt if necessary
                 if file_path == self.logger.data_file:
                     self.logger.initialize_datafile()
 
             except FileNotFoundError:
                 print(f"Warning: File not found: {file_path}")
 
-    def print_duomenys(self):
-        data_file_path = os.path.join(os.getcwd(), "duomenys.txt")  # Relative to current directory
+    def print_data(self):
+        data_file_path = os.path.join(os.getcwd(), "data.txt")  # Relative to current directory
         try:
-            with open(data_file_path, "r") as duomenys_file:
-                print("\nContents of duomenys.txt:")
-                print(duomenys_file.read())
+            with open(data_file_path, "r") as data_file:
+                print("\nContents of data.txt:")
+                print(data_file.read())
                 print()
         except FileNotFoundError:
-            print("Error: duomenys.txt not found.")
+            print("Error: data.txt not found.")
 
     def handle_user_input(self, user_input):
         """Handles the user input and performs the conversion"""
@@ -367,4 +367,4 @@ class UserInterface:
 
 
 # Run the user interface
-UserInterface().run()
+#UserInterface().run()
