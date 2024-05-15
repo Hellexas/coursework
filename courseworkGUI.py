@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from coursework import NumberFactory, NumberConverter, DecimalNumber, RomanNumber, DataLogger
+from Coursework import NumberFactory, NumberConverter, DecimalNumber, RomanNumber, DataLogger
 
 class NumberConverterUI(tk.Tk):
     def __init__(self):
