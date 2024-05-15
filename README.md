@@ -1,6 +1,60 @@
 # Coursework "Decimal and roman number converter"
 Python coursework by Dovydas Bubulas EDiF-23/1
 
+## Introduction
+   This application converts decimal numbers to Roman numerals and vice versa. It provides a user-friendly graphical interface (GUI) or a command-line interface (CLI) for flexibility.
+   
+   ### How to Run
+
+   1) Download the repository as a ZIP file.
+   2) GUI Mode:
+      
+      Run courseworkGUI.py.
+   3) CLI Mode:
+      
+      Open coursework.py in a text editor.
+      
+      Uncomment the last line (UserInterface().run()).
+      
+      Run coursework.py from your terminal.
+
+   ### Features
+   Core Functionality:
+
+   -Converts decimal numbers to Roman numerals.
+
+   -Converts Roman numerals to decimal numbers.
+
+   Additional Features (GUI only):
+   
+   -Dark/light mode toggle.
+      
+   -Easy access to Roman numeral rules.
+      
+   Data Tracking and Logging:
+   
+   -Tracks conversion history.
+   
+   -Records code execution count and conversion statistics.
+   
+   -Allows clearing of logged data.
+   
+   Error Handling: 
+   
+   -Provides clear feedback on invalid input or rule violations.
+
+   ### Technical Overview
+
+   This project prioritizes:
+
+   -Expandability: The code is designed to be easily extended with new features or conversions.
+
+   -Usability: Both GUI and CLI options cater to different user preferences.
+
+   -Maintainability: The codebase is organized for clarity and ease of maintenance.
+
+   -Robustness: Input validation and error handling ensure a smooth user experience.
+
 
 ## Code Structure Overview
 
